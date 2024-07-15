@@ -104,4 +104,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contact
 
-For any issues or questions, please open an issue on GitHub or contact the repository owner at your-email@example.com.
+For any issues or questions, please open an issue on GitHub or contact the repository owner at brodymounanga@gmail.com
