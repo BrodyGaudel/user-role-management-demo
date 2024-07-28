@@ -1,11 +1,13 @@
 package org.mounanga.userservice.web;
 
-import org.mounanga.userservice.dto.PageResponse;
-import org.mounanga.userservice.dto.RoleRequest;
-import org.mounanga.userservice.dto.RoleResponse;
+import jakarta.validation.Valid;
+import org.mounanga.userservice.dto.PageModel;
+import org.mounanga.userservice.dto.RoleDTO;
 import org.mounanga.userservice.service.RoleService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/roles")
@@ -17,42 +19,48 @@ public class RoleRestController {
         this.roleService = roleService;
     }
 
-    @PreAuthorize("hasAnyAuthority('MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/list")
-    public PageResponse<RoleResponse> findAllRoles(@RequestParam(name = "page", defaultValue = "0") int page,
-                                                   @RequestParam(name = "size", defaultValue = "10") int size){
-        return roleService.findAllRoles(page, size);
-    }
-
-    @PreAuthorize("hasAnyAuthority('MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/search")
-    public PageResponse<RoleResponse> searchRoles(@RequestParam(name = "keyword", defaultValue = " ") String keyword,
-                                                  @RequestParam(name = "page", defaultValue = "0") int page,
-                                                  @RequestParam(name = "size", defaultValue = "10") int size){
-        return roleService.searchRoles(keyword, page, size);
-    }
-
-    @PreAuthorize("hasAnyAuthority('MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/get/{id}")
-    public RoleResponse findRoleById(@PathVariable Long id){
-        return roleService.findRoleById(id);
-    }
-
     @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
     @PostMapping("/create")
-    public RoleResponse createRole(@RequestBody RoleRequest roleRequest){
-        return roleService.createRole(roleRequest);
+    public RoleDTO createRole(@RequestBody @Valid RoleDTO dto) {
+        return roleService.createRole(dto);
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
     @PutMapping("/update/{id}")
-    public RoleResponse updateRole(@PathVariable Long id, @RequestBody RoleRequest roleRequest){
-        return roleService.updateRole(id, roleRequest);
+    public RoleDTO updateRole(@PathVariable Long id, @RequestBody @Valid RoleDTO dto) {
+        return roleService.updateRole(id, dto);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN','USER')")
+    @GetMapping("/get/{id}")
+    public RoleDTO getRoleById(@PathVariable Long id) {
+        return roleService.getRoleById(id);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN','USER')")
+    @GetMapping("/list")
+    public PageModel<RoleDTO> getAllRoles(@RequestParam(defaultValue = "0", name = "page")  int page,
+                                          @RequestParam(defaultValue = "9", name = "size")  int size) {
+        return roleService.getAllRoles(page, size);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN','USER')")
+    @GetMapping("/search")
+    public PageModel<RoleDTO> searchRoles(@RequestParam(defaultValue = "", name = "keyword") String keyword,
+                                          @RequestParam(defaultValue = "0", name = "page")  int page,
+                                          @RequestParam(defaultValue = "9", name = "size")  int size) {
+        return roleService.searchRoles(keyword, page, size);
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
     @DeleteMapping("/delete/{id}")
-    public void deleteRole(@PathVariable Long id){
-        roleService.deleteRole(id);
+    public void deleteRoleById(@PathVariable Long id) {
+        roleService.deleteRoleById(id);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
+    @DeleteMapping("/delete-all")
+    public void deleteAllRolesByIds(@RequestBody List<Long> ids) {
+        roleService.deleteAllRolesByIds(ids);
     }
 }

@@ -10,13 +10,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface RoleRepository extends JpaRepository<Role, Long> {
-
     Optional<Role> findByName(String name);
-
     boolean existsByName(String name);
 
     @Query("select r from Role r where r.name like :kw or r.description like :kw")
-    Page<Role> search(@Param("kw") String keyword, Pageable pageable);
+    Page<Role> findByNameOrDescription(@Param("kw") String keyword, Pageable pageable);
 
     boolean existsBy();
 }

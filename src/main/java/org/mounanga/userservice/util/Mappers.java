@@ -1,151 +1,162 @@
 package org.mounanga.userservice.util;
 
+import org.jetbrains.annotations.NotNull;
 import org.mounanga.userservice.dto.*;
+import org.mounanga.userservice.entity.Profile;
 import org.mounanga.userservice.entity.Role;
 import org.mounanga.userservice.entity.User;
 import org.springframework.data.domain.Page;
 
-import java.util.Collections;
 import java.util.List;
 
 public class Mappers {
 
-
-    private Mappers(){
+    private Mappers() {
         super();
     }
 
-    public static User fromUserRequest(final UserRequest request) {
-        if(request == null){
-            return null;
-        }
+    public static @NotNull User fromUserRequestDTO(final @NotNull UserRequestDTO userResponseDTO) {
         final User user = new User();
-        user.setFirstname(request.getFirstname());
-        user.setLastname(request.getLastname());
-        user.setPlaceOfBirth(request.getPlaceOfBirth());
-        user.setDateOfBirth(request.getDateOfBirth());
-        user.setNationality(request.getNationality());
-        user.setGender(request.getGender());
-        user.setNip(request.getNip());
-        user.setEnabled(Boolean.TRUE);
-        user.setPasswordNeedsToBeChanged(true);
-        user.setUsername(request.getUsername());
-        user.setPhone(request.getPhone());
-        user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
+        user.setUsername(userResponseDTO.getUsername());
+        user.setPassword(userResponseDTO.getPassword());
+        user.setEmail(userResponseDTO.getEmail());
+        user.setEnabled(Boolean.FALSE);
         return user;
     }
 
-    public static UserResponse fromUser(final User user) {
-        if(user == null){
+    public static UserResponseDTO fromUser(final User user) {
+        if(user == null) {
             return null;
         }
-        final UserResponse userResponse = new UserResponse();
-        userResponse.setFirstname(user.getFirstname());
-        userResponse.setLastname(user.getLastname());
-        userResponse.setPlaceOfBirth(user.getPlaceOfBirth());
-        userResponse.setDateOfBirth(user.getDateOfBirth());
-        userResponse.setNationality(user.getNationality());
-        userResponse.setGender(user.getGender());
-        userResponse.setEnabled(user.getEnabled());
-        userResponse.setNip(user.getNip());
-        userResponse.setUsername(user.getUsername());
-        userResponse.setPhone(user.getPhone());
-        userResponse.setEmail(user.getEmail());
-        userResponse.setLastLogin(user.getLastLogin());
-        userResponse.setCreatedBy(user.getCreatedBy());
-        userResponse.setCreatedDate(user.getCreatedDate());
-        userResponse.setLastModifiedBy(user.getLastModifiedBy());
-        userResponse.setLastModifiedDate(user.getLastModifiedDate());
-        userResponse.setRoles(rolesToStringList(user.getRoles()));
-        return userResponse;
+        final UserResponseDTO userDTO = new UserResponseDTO();
+        userDTO.setId(user.getId());
+        userDTO.setUsername(user.getUsername());
+        userDTO.setEmail(user.getEmail());
+        userDTO.setEnabled(user.getEnabled());
+        userDTO.setCreateBy(user.getCreateBy());
+        userDTO.setCreatedDate(user.getCreatedDate());
+        userDTO.setLastModifiedBy(user.getLastModifiedBy());
+        userDTO.setLastModifiedDate(user.getLastModifiedDate());
+        userDTO.setLastLogin(user.getLastLogin());
+        userDTO.setRoles(rolesToStringList(user.getRoles()));
+        userDTO.setProfile(fromProfile(user.getProfile()));
+        return userDTO;
     }
 
-    public static PageResponse<UserResponse> fromUserPage(final Page<User> userPage,final int page) {
-        if(userPage == null){
-            return null;
-        }
-        final PageResponse<UserResponse> pageResponse = new PageResponse<>();
-        pageResponse.setTotalElements(userPage.getTotalElements());
-        pageResponse.setTotalPages(userPage.getTotalPages());
-        pageResponse.setNumbers(userPage.getNumber());
-        pageResponse.setNumberOfElements(userPage.getNumberOfElements());
-        pageResponse.setSize(userPage.getSize());
-        pageResponse.setPage(page);
-        pageResponse.setLast(userPage.isLast());
-        pageResponse.setFirst(userPage.isFirst());
-        pageResponse.setHasPrevious(userPage.hasPrevious());
-        pageResponse.setHasNext(userPage.hasNext());
-        pageResponse.setHasContent(userPage.hasContent());
-        pageResponse.setContent(fromUserList(userPage.getContent()));
-        return pageResponse;
-    }
-
-    public static List<UserResponse> fromUserList(final List<User> userList) {
-        if(userList == null || userList.isEmpty()){
-            return Collections.emptyList();
+    public static List<UserResponseDTO> fromUserList(final List<User> userList) {
+        if(userList == null || userList.isEmpty()) {
+            return List.of();
         }
         return userList.stream().map(Mappers::fromUser).toList();
     }
 
+    public static @NotNull Profile fromUserProfileRequestDTO(final @NotNull UserRequestDTO userRequestDTO) {
+        final Profile profile = new Profile();
+        profile.setLastname(userRequestDTO.getLastname());
+        profile.setPlaceOfBirth(userRequestDTO.getPlaceOfBirth());
+        profile.setNationality(userRequestDTO.getNationality());
+        profile.setPin(userRequestDTO.getPin());
+        profile.setBirthday(userRequestDTO.getBirthday());
+        profile.setFirstname(userRequestDTO.getFirstname());
+        profile.setGender(userRequestDTO.getGender());
+        return profile;
+    }
 
-    public static Role fromRoleRequest(final RoleRequest request) {
-        if(request == null){
+    public static @NotNull ProfileResponseDTO fromUserProfile(final @NotNull Profile profile) {
+        final ProfileResponseDTO userProfileDTO = new ProfileResponseDTO();
+        userProfileDTO.setLastname(profile.getLastname());
+        userProfileDTO.setBirthday(profile.getBirthday());
+        userProfileDTO.setFirstname(profile.getFirstname());
+        userProfileDTO.setGender(profile.getGender());
+        userProfileDTO.setPlaceOfBirth(profile.getPlaceOfBirth());
+        userProfileDTO.setNationality(profile.getNationality());
+        userProfileDTO.setPin(profile.getPin());
+        userProfileDTO.setId(profile.getId());
+        userProfileDTO.setPin(profile.getPin());
+        return userProfileDTO;
+    }
+
+    public static RoleDTO fromRole(final Role role){
+        if(role == null){
             return null;
         }
+        return new RoleDTO(role.getId(), role.getName(), role.getDescription());
+    }
+
+    public static List<RoleDTO> fromListOfRole(final List<Role> roles){
+        if(roles == null || roles.isEmpty()) {
+            return List.of();
+        }
+        return roles.stream().map(Mappers::fromRole).toList();
+    }
+
+    public static @NotNull Role fromRoleDTO(final @NotNull RoleDTO roleDTO) {
         final Role role = new Role();
-        role.setName(request.name());
-        role.setDescription(request.description());
+        role.setName(roleDTO.name());
+        role.setDescription(roleDTO.description());
         return role;
     }
 
-    public static RoleResponse fromRole(final Role role) {
-       if(role == null){
-           return null;
-       }
-        return new RoleResponse(
-               role.getId(), role.getName(),
-               role.getDescription(),
-               role.getCreatedDate(),
-               role.getCreatedBy(),
-               role.getLastModifiedDate(),
-               role.getLastModifiedBy()
-       );
-    }
-
-    public static List<RoleResponse> fromRoleList(final List<Role> roleList) {
-        if(roleList == null || roleList.isEmpty()){
-            return Collections.emptyList();
-        }
-        return roleList.stream().map(Mappers::fromRole).toList();
-    }
-
-    public static PageResponse<RoleResponse> fromRolePage(final Page<Role> rolePage,final int page) {
-        if(rolePage == null){
+    public static PageModel<UserResponseDTO> fromPageOfUsers(final Page<User> entityPage, final int page) {
+        if(entityPage == null) {
             return null;
         }
-        final PageResponse<RoleResponse> pageResponse = new PageResponse<>();
-        pageResponse.setTotalPages(rolePage.getTotalPages());
-        pageResponse.setNumbers(rolePage.getNumber());
-        pageResponse.setNumberOfElements(rolePage.getNumberOfElements());
-        pageResponse.setTotalElements(rolePage.getTotalElements());
-        pageResponse.setSize(rolePage.getSize());
-        pageResponse.setPage(page);
-        pageResponse.setFirst(rolePage.isFirst());
-        pageResponse.setLast(rolePage.isLast());
-        pageResponse.setHasPrevious(rolePage.hasPrevious());
-        pageResponse.setHasNext(rolePage.hasNext());
-        pageResponse.setHasContent(rolePage.hasContent());
-        pageResponse.setContent(fromRoleList(rolePage.getContent()));
-        return pageResponse;
+        final PageModel<UserResponseDTO> pageModel = new PageModel<>();
+        pageModel.setTotalElements(entityPage.getTotalElements());
+        pageModel.setHasNext(entityPage.hasNext());
+        pageModel.setHasPrevious(entityPage.hasPrevious());
+        pageModel.setHasContent(entityPage.hasContent());
+        pageModel.setNumbers(entityPage.getNumber());
+        pageModel.setNumberOfElements(entityPage.getNumberOfElements());
+        pageModel.setPage(page);
+        pageModel.setTotalPages(entityPage.getTotalPages());
+        pageModel.setSize(entityPage.getSize());
+        pageModel.setLast(entityPage.isLast());
+        pageModel.setFirst(entityPage.isFirst());
+        pageModel.setContent(fromUserList(entityPage.getContent()));
+        return pageModel;
+    }
+
+    public static PageModel<RoleDTO> fromPageOfRoles(final Page<Role> entityPage, final int page) {
+        if(entityPage == null) {
+            return null;
+        }
+        final PageModel<RoleDTO> pageModel = new PageModel<>();
+        pageModel.setTotalElements(entityPage.getTotalElements());
+        pageModel.setTotalPages(entityPage.getTotalPages());
+        pageModel.setSize(entityPage.getSize());
+        pageModel.setLast(entityPage.isLast());
+        pageModel.setFirst(entityPage.isFirst());
+        pageModel.setHasNext(entityPage.hasNext());
+        pageModel.setHasPrevious(entityPage.hasPrevious());
+        pageModel.setHasContent(entityPage.hasContent());
+        pageModel.setNumbers(entityPage.getNumber());
+        pageModel.setNumberOfElements(entityPage.getNumberOfElements());
+        pageModel.setPage(page);
+        pageModel.setContent(fromListOfRole(entityPage.getContent()));
+        return pageModel;
     }
 
     private static List<String> rolesToStringList(final List<Role> roles) {
-        if(roles == null || roles.isEmpty()){
-            return Collections.emptyList();
+        if(roles == null || roles.isEmpty()) {
+            return List.of();
         }
         return roles.stream().map(Role::getName).toList();
     }
 
-
+    private static ProfileResponseDTO fromProfile(final Profile profile) {
+        if(profile == null) {
+            return null;
+        }
+        final ProfileResponseDTO profileDTO = new ProfileResponseDTO();
+        profileDTO.setId(profile.getId());
+        profileDTO.setFirstname(profile.getFirstname());
+        profileDTO.setLastname(profile.getLastname());
+        profileDTO.setBirthday(profile.getBirthday());
+        profileDTO.setGender(profile.getGender());
+        profileDTO.setPlaceOfBirth(profile.getPlaceOfBirth());
+        profileDTO.setNationality(profile.getNationality());
+        profileDTO.setPin(profile.getPin());
+        return profileDTO;
+    }
 }

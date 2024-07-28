@@ -2,193 +2,219 @@ package org.mounanga.userservice.service.implementation;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.mounanga.userservice.dto.PageResponse;
-import org.mounanga.userservice.dto.UserRequest;
-import org.mounanga.userservice.dto.UserResponse;
-import org.mounanga.userservice.dto.UserRoleRequest;
+import org.mounanga.userservice.dto.*;
+import org.mounanga.userservice.entity.Profile;
 import org.mounanga.userservice.entity.Role;
 import org.mounanga.userservice.entity.User;
-import org.mounanga.userservice.exception.ItemAlreadyExistException;
-import org.mounanga.userservice.exception.RoleNotFoundException;
-import org.mounanga.userservice.exception.UserNotFoundException;
+import org.mounanga.userservice.exception.*;
+import org.mounanga.userservice.repository.ProfileRepository;
 import org.mounanga.userservice.repository.RoleRepository;
 import org.mounanga.userservice.repository.UserRepository;
 import org.mounanga.userservice.service.UserService;
 import org.mounanga.userservice.util.Mappers;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, ProfileRepository profileRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+
     @Transactional
     @Override
-    public UserResponse createUser(UserRequest request) {
+    public UserResponseDTO createUser(@NotNull UserRequestDTO dto) {
         log.info("In createUser()");
-        User user = Mappers.fromUserRequest(request);
-        validateUniqueFields(user);
+        validationBeforeSaved(dto.getEmail(), dto.getUsername(), dto.getPin());
+        User user = Mappers.fromUserRequestDTO(dto);
+        Profile profile = Mappers.fromUserProfileRequestDTO(dto);
+        user.setProfile(profile);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPasswordNeedsToBeChanged(true);
+        user.setEnabled(Boolean.FALSE);
+        user.setLastLogin(LocalDateTime.now());
         User savedUser = userRepository.save(user);
-        log.info("user saved with id '{}' at '{}' by '{}'.", savedUser.getId(), savedUser.getCreatedDate(), user.getCreatedBy());
-        Role defaultRole = getDefaultRole();
-        savedUser.addRole(defaultRole);
-        User reSavedUser = userRepository.save(savedUser);
-        log.info("default role at to user with id '{}' at '{}' by '{}'.", savedUser.getId(), savedUser.getLastModifiedDate(), user.getLastModifiedBy());
-        return Mappers.fromUser(reSavedUser);
+        log.info("User saved with id '{}' at '{}' by '{}'", savedUser.getId(), savedUser.getCreatedDate(), savedUser.getCreateBy());
+        return Mappers.fromUser(savedUser);
     }
 
+    @Transactional
     @Override
-    public UserResponse updateUser(String id, @NotNull UserRequest request) {
+    public UserResponseDTO updateUser(String id, @NotNull UpdateEmailUsernameDTO dto) {
         log.info("In updateUser()");
-        User user = findUserById(id);
-        updateUserItems(user, request);
-        User updatedUser = userRepository.save(user);
-        log.info("user updated with id {} updated at '{}' by '{}'.", updatedUser.getId(), updatedUser.getLastModifiedDate(), user.getLastModifiedBy());
+        User existingUser = findUserById(id);
+        validationBeforeUpdate(existingUser, dto.email(), dto.username());
+        existingUser.setUsername(dto.username());
+        existingUser.setEmail(dto.email());
+        User updatedUser = userRepository.save(existingUser);
+        log.info("user with id '{}' updated at '{}' by '{}'", updatedUser.getId(),updatedUser.getLastModifiedDate(), updatedUser.getLastModifiedBy());
         return Mappers.fromUser(updatedUser);
     }
 
+    @Transactional
+    @Override
+    public ProfileResponseDTO updateProfile(String id, @NotNull UserRequestDTO dto) {
+        log.info("In updateProfile()");
+        Profile profile = profileRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+        profile.setFirstname(dto.getFirstname());
+        profile.setLastname(dto.getLastname());
+        profile.setBirthday(dto.getBirthday());
+        profile.setGender(dto.getGender());
+        profile.setPlaceOfBirth(dto.getPlaceOfBirth());
+        profile.setNationality(dto.getNationality());
+        if(!profile.getPin().equals(dto.getPin()) && profileRepository.existsByPin(dto.getPin())) {
+            throw new ResourceAlreadyExistException("there is already a profile with the same pin");
+        }
+        profile.setPin(dto.getPin());
+        Profile updatedProfile = profileRepository.save(profile);
+        log.info("Profile with id '{}' updated at '{}' by '{}'", id, updatedProfile.getLastModifiedDate(), updatedProfile.getLastModifiedBy());
+        return Mappers.fromUserProfile(updatedProfile);
+    }
+
+    @Override
+    public UserResponseDTO getUserById(String id) {
+        log.info("In getUserById()");
+        User user = findUserById(id);
+        log.info("User with id '{}' found", user.getId());
+        return Mappers.fromUser(user);
+    }
+
+    @Override
+    public PageModel<UserResponseDTO> getAllUsers(int page, int size) {
+        log.info("In getAllUsers()");
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users = userRepository.findAll(pageable);
+        log.info("'{}' Users found", users.getTotalElements());
+        return Mappers.fromPageOfUsers(users, page);
+    }
+
+    @Override
+    public PageModel<UserResponseDTO> searchUsers(String keyword, int page, int size) {
+        log.info("In searchUsers()");
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users = userRepository.search("%"+keyword+"%", pageable);
+        log.info("'{}' Users found.", users.getTotalElements());
+        return Mappers.fromPageOfUsers(users, page);
+    }
+
+    @Transactional
     @Override
     public void deleteUserById(String id) {
         log.info("In deleteUserById()");
-        userRepository.deleteById(id);
-        log.info("user with id '{}' deleted.",id);
-    }
-
-    @Override
-    public UserResponse getUserById(String id) {
-        log.info("In getUserById()");
         User user = findUserById(id);
-        log.info("user with id '{}' found.", id);
-        return Mappers.fromUser(user);
-    }
-
-    @Override
-    public UserResponse getUserByUsername(String username) {
-        log.info("In getUserByUsername()");
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
-        log.info("user with username '{}' found.", username);
-        return Mappers.fromUser(user);
-    }
-
-    @Override
-    public PageResponse<UserResponse> getAllUsers(int page, int size) {
-        log.info("In getAllUsers()");
-        Page<User> userPage = userRepository.findAll(PageRequest.of(page,size));
-        log.info("{} users found.", userPage.getTotalElements());
-        return Mappers.fromUserPage(userPage, page);
-    }
-
-    @Override
-    public PageResponse<UserResponse> searchUsers(String keyword, int page, int size) {
-        log.info("In searchUsers()");
-        Page<User> userPage = userRepository.search("%"+keyword+"%", PageRequest.of(page,size));
-        log.info("{} users found", userPage.getTotalElements());
-        return Mappers.fromUserPage(userPage, page);
+        if(user.isSuperAdmin()){
+            throw new NotAuthorizedException("You cannot delete a super administrator.");
+        }
+        userRepository.deleteById(id);
+        log.info("User with id {} deleted.", id);
     }
 
     @Transactional
     @Override
-    public UserResponse addRoleToUser(@NotNull UserRoleRequest request) {
+    public void deleteAllUsersByIds(List<String> ids) {
+        log.info("In deleteAllUsersByIds()");
+        List<User> users = userRepository.findAllById(ids).stream()
+                .filter(user -> !user.isSuperAdmin())
+                .toList();
+        userRepository.deleteAll(users);
+        log.info(" {} users deleted.",users.size());
+    }
+
+    @Transactional
+    @Override
+    public UserResponseDTO addRoleToUser(@NotNull UserRoleRequestDTO dto) {
         log.info("In addRoleToUser()");
-        User user = userRepository.findByUsername(request.username()).orElseThrow(() -> new UserNotFoundException("User not found"));
-        Role role = roleRepository.findByName(request.roleName()).orElseThrow(() -> new RoleNotFoundException("Role not found"));
+        User user = findUserById(dto.userId());
+        Role role = findRoleByName(dto.roleName());
+        if(role.isSuperAdminRole()){
+            throw new NotAuthorizedException("You cannot add a new super administrator.");
+        }
         user.addRole(role);
         User updatedUser = userRepository.save(user);
-        log.info("role '{}' added to user '{}' at '{}' by '{}'",request.roleName(), updatedUser.getId(), updatedUser.getLastModifiedDate(), user.getLastModifiedBy());
+        log.info("role '{}' has been added to user with id '{}', at '{}', by '{}'.", dto.roleName(), updatedUser.getId(), updatedUser.getLastModifiedDate(), updatedUser.getLastModifiedBy());
         return Mappers.fromUser(updatedUser);
     }
 
     @Transactional
     @Override
-    public UserResponse removeRoleFromUser(@NotNull UserRoleRequest request) {
+    public UserResponseDTO removeRoleFromUser(@NotNull UserRoleRequestDTO dto) {
         log.info("In removeRoleFromUser()");
-        User user = userRepository.findByUsername(request.username()).orElseThrow(() -> new UserNotFoundException("User not found"));
-        Role role = roleRepository.findByName(request.roleName()).orElseThrow(() -> new RoleNotFoundException("Role not found"));
+        User user = findUserById(dto.userId());
+        if(user.isSuperAdmin()){
+            throw new NotAuthorizedException("You cannot remove a role to a super administrator.");
+        }
+        Role role = findRoleByName(dto.roleName());
         user.removeRole(role);
         User updatedUser = userRepository.save(user);
-        log.info("role '{}' removed from user '{}' at '{}' by '{}'",request.roleName(), updatedUser.getId(), updatedUser.getLastModifiedDate(), user.getLastModifiedBy());
+        log.info("role '{}' has been removed from user with id '{}', at '{}', by '{}'.", dto.roleName(), updatedUser.getId(), updatedUser.getLastModifiedDate(), updatedUser.getLastModifiedBy());
         return Mappers.fromUser(updatedUser);
     }
 
-    @Transactional
     @Override
-    public UserResponse enableOrDisableUser(String id) {
-        log.info("In enableOrDisableUser()");
-        User user = findUserById(id);
-        if(user.isEnabled()){
-            user.setEnabled(false);
-            User updatedUser = userRepository.save(user);
-            log.info("user with id '{}' disabled at '{}' by '{}'",id, updatedUser.getLastModifiedDate(),updatedUser.getLastModifiedBy());
-            return Mappers.fromUser(updatedUser);
-        }else{
-            user.setEnabled(true);
-            User updatedUser = userRepository.save(user);
-            log.info("user with id '{}' enabled at '{}' by '{}'",id, updatedUser.getLastModifiedDate(),updatedUser.getLastModifiedBy());
-            return Mappers.fromUser(updatedUser);
-        }
+    public UserResponseDTO getUserByUsername(String username) {
+        log.info("In getUserByUsername()");
+        User user = userRepository.findByUsername(username)
+                .orElseThrow( () -> new UsernameNotFoundException("User not found"));
+        log.info("user found with id '{}'.", user.getId());
+        return Mappers.fromUser(user);
     }
 
-    private Role getDefaultRole() {
-        return roleRepository.findByName("USER")
-                .orElseThrow(() -> new RoleNotFoundException("No default role found"));
-    }
-
-    private User findUserById(String id) {
+    private User findUserById(String id){
         return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("No user found with id '"+id+"'."));
+                .orElseThrow( () -> new UserNotFoundException("user with id '"+id+"' not found."));
     }
 
+    private Role findRoleByName(String roleName){
+        return roleRepository.findByName(roleName)
+                .orElseThrow( () -> new RoleNotFoundException("Role not found."));
+    }
 
-
-    private void validateUniqueFields(@NotNull User user) {
-        if (userRepository.existsByNip(user.getNip())) {
-            throw new ItemAlreadyExistException("NIP already exists");
+    private void validationBeforeSaved(String email, String username, String pin){
+        List<FieldError> fieldErrors = new ArrayList<>();
+        if(userRepository.existsByEmail(email)){
+            fieldErrors.add(new FieldError("email","Email already exists"));
         }
-        if (userRepository.existsByPhone(user.getPhone())) {
-            throw new ItemAlreadyExistException("Phone number already exists");
+        if(userRepository.existsByUsername(username)){
+            fieldErrors.add(new FieldError("username","Username already exists"));
         }
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new ItemAlreadyExistException("Email already exists");
+        if(profileRepository.existsByPin(pin)){
+            fieldErrors.add(new FieldError("pin","Pin already exists"));
         }
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new ItemAlreadyExistException("Username already exists");
+        if (!fieldErrors.isEmpty()) {
+            throw new FieldValidationException("Validation error", fieldErrors);
         }
     }
 
-    private void updateUserItems(@NotNull User user, @NotNull UserRequest request) {
-        if(!user.getNip().equals(request.getNip()) && userRepository.existsByNip(user.getNip())) {
-            throw new ItemAlreadyExistException("NIP already exists");
+    private void validationBeforeUpdate(@NotNull User existingUser, String email, String username) {
+        List<FieldError> fieldErrors = new ArrayList<>();
+        if(!existingUser.getEmail().equals(email) && userRepository.existsByEmail(email)){
+                fieldErrors.add(new FieldError("email","Email already exists"));
         }
-        if(!user.getPhone().equals(request.getPhone()) && userRepository.existsByPhone(user.getPhone())) {
-            throw new ItemAlreadyExistException("Phone number already exists");
+        if(!existingUser.getUsername().equals(username) && userRepository.existsByUsername(username)){
+            fieldErrors.add(new FieldError("username","Username already exists"));
         }
-        if(!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(user.getEmail())) {
-            throw new ItemAlreadyExistException("Email already exists");
+        if (!fieldErrors.isEmpty()) {
+            throw new FieldValidationException("Validation error", fieldErrors);
         }
-        user.setFirstname(request.getFirstname());
-        user.setLastname(request.getLastname());
-        user.setPlaceOfBirth(request.getPlaceOfBirth());
-        user.setDateOfBirth(request.getDateOfBirth());
-        user.setNip(request.getNip());
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
-        user.setGender(request.getGender());
-        user.setNationality(request.getNationality());
     }
 }

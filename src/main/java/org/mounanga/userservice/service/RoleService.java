@@ -1,16 +1,16 @@
 package org.mounanga.userservice.service;
 
-import org.mounanga.userservice.dto.PageResponse;
-import org.mounanga.userservice.dto.RoleRequest;
-import org.mounanga.userservice.dto.RoleResponse;
+import org.mounanga.userservice.dto.PageModel;
+import org.mounanga.userservice.dto.RoleDTO;
 
+import java.util.List;
 
 public interface RoleService {
-
-    PageResponse<RoleResponse> findAllRoles(int page, int size);
-    PageResponse<RoleResponse> searchRoles(String keyword, int page, int size);
-    RoleResponse findRoleById(Long id);
-    RoleResponse createRole(RoleRequest roleRequest);
-    RoleResponse updateRole(Long id, RoleRequest roleRequest);
-    void deleteRole(Long id);
+    RoleDTO createRole(RoleDTO dto);
+    RoleDTO updateRole(Long id, RoleDTO dto);
+    RoleDTO getRoleById(Long id);
+    PageModel<RoleDTO> getAllRoles(int page, int size);
+    PageModel<RoleDTO> searchRoles(String keyword, int page, int size);
+    void deleteRoleById(Long id);
+    void deleteAllRolesByIds(List<Long> ids);
 }

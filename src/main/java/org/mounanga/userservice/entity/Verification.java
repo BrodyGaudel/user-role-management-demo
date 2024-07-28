@@ -8,25 +8,26 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Getter
 @Setter
-@Builder
 @ToString
 public class Verification {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private String code;
 
-    @Column(nullable = false)
-    private LocalDateTime expiryDateTime;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime expiryDate;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    private User user;
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiryDateTime);
+        return LocalDateTime.now().isAfter(expiryDate);
     }
 }

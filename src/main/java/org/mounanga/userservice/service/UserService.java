@@ -1,19 +1,19 @@
 package org.mounanga.userservice.service;
 
-import org.mounanga.userservice.dto.PageResponse;
-import org.mounanga.userservice.dto.UserRequest;
-import org.mounanga.userservice.dto.UserResponse;
-import org.mounanga.userservice.dto.UserRoleRequest;
+import org.mounanga.userservice.dto.*;
+
+import java.util.List;
 
 public interface UserService {
-    UserResponse createUser(UserRequest request);
-    UserResponse updateUser(String id, UserRequest request);
+    UserResponseDTO createUser(UserRequestDTO dto);
+    UserResponseDTO updateUser(String id, UpdateEmailUsernameDTO dto);
+    ProfileResponseDTO updateProfile(String id, UserRequestDTO dto);
+    UserResponseDTO getUserById(String id);
+    PageModel<UserResponseDTO> getAllUsers(int page, int size);
+    PageModel<UserResponseDTO> searchUsers(String keyword, int page, int size);
     void deleteUserById(String id);
-    UserResponse getUserById(String id);
-    UserResponse getUserByUsername(String username);
-    PageResponse<UserResponse> getAllUsers(int page, int size);
-    PageResponse<UserResponse> searchUsers(String keyword, int page, int size);
-    UserResponse addRoleToUser(UserRoleRequest request);
-    UserResponse removeRoleFromUser(UserRoleRequest request);
-    UserResponse enableOrDisableUser(String id);
+    void deleteAllUsersByIds(List<String> ids);
+    UserResponseDTO addRoleToUser(UserRoleRequestDTO dto);
+    UserResponseDTO removeRoleFromUser(UserRoleRequestDTO dto);
+    UserResponseDTO getUserByUsername(String username);
 }

@@ -9,18 +9,15 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, String> {
 
+public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
-    boolean existsByNip(String nip);
-    boolean existsByPhone(String phone);
+    Optional<User> findByUsernameOrEmail(String username, String email);
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
-
-    @Query("select u from User u where u.firstname like :kw or u.lastname like :kw or u.nip like :kw or u.email like :kw")
-    Page<User> search(@Param("kw") String keyword, Pageable pageable);
-
     boolean existsBy();
 
+    @Query("select u from User u where u.profile.firstname like :kw or u.profile.lastname like :kw or u.profile.pin like :kw")
+    Page<User> search(@Param("kw") String keyword, Pageable pageable);
 }

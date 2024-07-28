@@ -6,11 +6,11 @@ import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Getter
 @Setter
-@Builder
 @ToString
-public class PageResponse<T> {
+public class PageModel<T> {
     private boolean hasContent;
     private boolean hasNext;
     private boolean hasPrevious;
@@ -23,4 +23,5 @@ public class PageResponse<T> {
     private int numberOfElements;
     private int numbers;
     private List<T> content;
+
 }

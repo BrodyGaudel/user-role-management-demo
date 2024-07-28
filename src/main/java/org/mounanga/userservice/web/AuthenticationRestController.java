@@ -1,7 +1,8 @@
 package org.mounanga.userservice.web;
 
-import org.mounanga.userservice.dto.LoginRequest;
-import org.mounanga.userservice.dto.LoginResponse;
+import jakarta.validation.Valid;
+import org.mounanga.userservice.dto.LoginRequestDTO;
+import org.mounanga.userservice.dto.LoginResponseDTO;
 import org.mounanga.userservice.service.AuthenticationService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,7 +20,7 @@ public class AuthenticationRestController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest loginRequest) {
-        return authenticationService.authenticate(loginRequest);
+    public LoginResponseDTO authenticate(@RequestBody @Valid LoginRequestDTO request){
+        return authenticationService.authenticate(request);
     }
 }

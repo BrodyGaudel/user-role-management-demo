@@ -1,7 +1,6 @@
 package org.mounanga.userservice.exception;
 
-public class ItemAlreadyExistException extends RuntimeException{
-
+public class VerificationExpiredException extends RuntimeException{
     /**
      * Constructs a new runtime exception with the specified detail message.
      * The cause is not initialized, and may subsequently be initialized by a
@@ -10,7 +9,7 @@ public class ItemAlreadyExistException extends RuntimeException{
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public ItemAlreadyExistException(String message) {
+    public VerificationExpiredException(String message) {
         super(message);
     }
 }

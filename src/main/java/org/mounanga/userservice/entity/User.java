@@ -2,13 +2,12 @@ package org.mounanga.userservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.mounanga.userservice.enums.Gender;
+import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,40 +19,16 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@ToString
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false)
-    private String firstname;
-
-    @Column(nullable = false)
-    private String lastname;
-
-    @Column(nullable = false)
-    private String placeOfBirth;
-
-    @Column(nullable = false)
-    private LocalDate dateOfBirth;
-
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private Gender gender;
-
-    @Column(nullable = false)
-    private String nationality;
-
-    @Column(nullable = false, unique = true)
-    private String nip;
-
-    @Column(nullable = false, unique = true)
-    private String phone;
-
-    @Column(nullable = false, unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true, nullable = false)
     private String username;
 
     @Column(nullable = false)
@@ -62,19 +37,17 @@ public class User {
     @Column(nullable = false)
     private Boolean enabled;
 
+    @Column(nullable = false)
     private LocalDateTime lastLogin;
 
-    @Column(updatable = false)
     @CreatedDate
     private LocalDateTime createdDate;
 
-    @Column(updatable = false)
-    @LastModifiedDate
-    private String createdBy;
-
-    @Column(insertable = false)
     @LastModifiedDate
     private LocalDateTime lastModifiedDate;
+
+    @CreatedBy
+    private String createBy;
 
     @LastModifiedBy
     private String lastModifiedBy;
@@ -82,38 +55,45 @@ public class User {
     @Column(nullable = false)
     private boolean passwordNeedsToBeChanged = false;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "profile_id", referencedColumnName = "id")
+    private Profile profile;
+
     @ManyToMany(cascade=CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinTable(name="user_role",joinColumns = @JoinColumn(name="user_id") , inverseJoinColumns = @JoinColumn(name="role_id"))
     private List<Role> roles;
 
-    public String getFullName(){
-        return firstname + " " + lastname;
+    public boolean isEnabled(){
+        return Boolean.TRUE.equals(this.enabled);
+    }
+
+    public boolean isDisabled(){
+        return Boolean.FALSE.equals(this.enabled);
     }
 
     public void addRole(Role role){
-        if(roles == null){
-            roles = new ArrayList<>();
+        if(this.roles == null){
+            this.roles = new ArrayList<>();
         }
         if(role != null && !roles.contains(role)){
-            roles.add(role);
+            this.roles.add(role);
         }
     }
 
     public void removeRole(Role role){
-        if(roles != null && role != null && !role.getName().equals("USER")){
-            roles.remove(role);
+        if(this.roles != null && role != null && role.getName().equals("USER")){
+                this.roles.remove(role);
         }
     }
 
-    public boolean isEnabled(){
-        if(enabled == null){
-            return false;
-        } else {
-            return enabled == Boolean.TRUE;
-        }
+    public boolean isSuperAdmin(){
+        return roles.stream()
+                .anyMatch(role -> "SUPER_ADMIN".equals(role.getName()));
     }
 
     public void markPasswordAsChanged() {
         this.passwordNeedsToBeChanged = false;
     }
+
+
 }

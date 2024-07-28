@@ -1,13 +1,13 @@
 package org.mounanga.userservice.web;
 
-import org.mounanga.userservice.dto.PageResponse;
-import org.mounanga.userservice.dto.UserRequest;
-import org.mounanga.userservice.dto.UserResponse;
-import org.mounanga.userservice.dto.UserRoleRequest;
+import jakarta.validation.Valid;
+import org.mounanga.userservice.dto.*;
+import org.mounanga.userservice.security.SecurityInformation;
 import org.mounanga.userservice.service.UserService;
-import org.mounanga.userservice.util.SecurityInformation;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -23,66 +23,72 @@ public class UserRestController {
 
     @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
     @PostMapping("/create")
-    public UserResponse createUser(@RequestBody UserRequest request){
-        return userService.createUser(request);
+    public UserResponseDTO createUser(@RequestBody @Valid UserRequestDTO dto) {
+        return userService.createUser(dto);
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
     @PutMapping("/update/{id}")
-    public UserResponse updateUser(@PathVariable String id, @RequestBody UserRequest request){
-        return userService.updateUser(id, request);
+    public UserResponseDTO updateUser(@PathVariable String id, @Valid @RequestBody UpdateEmailUsernameDTO dto) {
+        return userService.updateUser(id, dto);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
+    @PutMapping("/update-profile/{id}")
+    public ProfileResponseDTO updateProfile(@PathVariable String id, @Valid @RequestBody UserRequestDTO dto) {
+        return userService.updateProfile(id, dto);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN', 'USER')")
+    @GetMapping("/get/{id}")
+    public UserResponseDTO getUserById(@PathVariable String id) {
+        return userService.getUserById(id);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN', 'USER')")
+    @GetMapping("/list")
+    public PageModel<UserResponseDTO> getAllUsers(@RequestParam(defaultValue = "0", name = "page")  int page,
+                                                  @RequestParam(defaultValue = "9", name = "size")  int size) {
+        return userService.getAllUsers(page, size);
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN', 'USER')")
+    @GetMapping("/search")
+    public PageModel<UserResponseDTO> searchUsers(@RequestParam(defaultValue = "", name = "keyword") String keyword,
+                                                  @RequestParam(defaultValue = "0", name = "page")  int page,
+                                                  @RequestParam(defaultValue = "9", name = "size")  int size) {
+        return userService.searchUsers(keyword, page, size);
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
     @DeleteMapping("/delete/{id}")
-    public void deleteUserById(@PathVariable String id){
+    public void deleteUserById(@PathVariable String id) {
         userService.deleteUserById(id);
     }
 
-    @PreAuthorize("hasAnyAuthority('USER','MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/get/{id}")
-    public UserResponse getUserById(@PathVariable String id){
-        return userService.getUserById(id);
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
+    @DeleteMapping("/delete-all")
+    public void deleteAllUsersByIds(@RequestBody List<String> ids) {
+        userService.deleteAllUsersByIds(ids);
     }
 
-    @PreAuthorize("hasAnyAuthority('USER','MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/find")
-    public UserResponse getUserByUsername(){
-        String username = securityInformation.getCurrentUsername();
-        return userService.getUserByUsername(username);
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
+    @PostMapping("/add-role")
+    public UserResponseDTO addRoleToUser(@RequestBody @Valid UserRoleRequestDTO dto) {
+        return userService.addRoleToUser(dto);
     }
 
-    @PreAuthorize("hasAnyAuthority('USER','MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/list")
-    public PageResponse<UserResponse> getAllUsers(@RequestParam(name = "page", defaultValue = "0") int page,
-                                                  @RequestParam(name = "size", defaultValue = "10") int size){
-        return userService.getAllUsers(page, size);
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN')")
+    @PostMapping("/remove-role")
+    public UserResponseDTO removeRoleFromUser(@RequestBody @Valid UserRoleRequestDTO dto) {
+        return userService.removeRoleFromUser(dto);
     }
 
-    @PreAuthorize("hasAnyAuthority('USER','MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/search")
-    public PageResponse<UserResponse> searchUsers(@RequestParam(name = "keyword", defaultValue = " ") String keyword,
-                                                  @RequestParam(name = "page", defaultValue = "0") int page,
-                                                  @RequestParam(name = "size", defaultValue = "10") int size){
-        return userService.searchUsers(keyword, page, size);
+    @PreAuthorize("hasAnyAuthority('ADMIN','SUPER_ADMIN', 'USER')")
+    @GetMapping("/profile")
+    public UserResponseDTO getCurrentUser() {
+        return userService.getUserByUsername(
+                securityInformation.getCurrentUsername()
+        );
     }
-
-    @PreAuthorize("hasAnyAuthority('MODERATOR','ADMIN','SUPER_ADMIN')")
-    @PutMapping("/add")
-    public UserResponse addRoleToUser(@RequestBody UserRoleRequest request){
-        return userService.addRoleToUser(request);
-    }
-
-    @PreAuthorize("hasAnyAuthority('MODERATOR','ADMIN','SUPER_ADMIN')")
-    @PutMapping("/remove")
-    public UserResponse removeRoleFromUser(@RequestBody UserRoleRequest request){
-        return userService.removeRoleFromUser(request);
-    }
-
-    @PreAuthorize("hasAnyAuthority('MODERATOR','ADMIN','SUPER_ADMIN')")
-    @GetMapping("/enable/{id}")
-    public UserResponse enableOrDisableUser(@PathVariable String id){
-        return userService.enableOrDisableUser(id);
-    }
-
 }

@@ -1,8 +1,9 @@
 package org.mounanga.userservice.service;
 
-import org.mounanga.userservice.dto.LoginRequest;
-import org.mounanga.userservice.dto.LoginResponse;
+import org.mounanga.userservice.dto.LoginRequestDTO;
+import org.mounanga.userservice.dto.LoginResponseDTO;
 
 public interface AuthenticationService {
-    LoginResponse authenticate(LoginRequest request);
+
+    LoginResponseDTO authenticate(LoginRequestDTO request);
 }
